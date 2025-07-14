@@ -1,70 +1,89 @@
-function knightMoves(initialCoordinate, goal){
-  let movesInitial = getMoves(initialCoordinate);// Gets moves for the knight
-  let oneMoveFromGoal = getMoves(goal); // Moves a knight could do to get to the goaal in one step
-  let twoMovesFromGoal = oneMoveFromGoal.map(move=>getMoves(move)) // moves to get to a place where the knight would just be from one move to the goal
-  let [begX, betY] = initialCoordinate.split('')
-  let [goalX,goalY] = goal.split('')
-  let reachGoal = false;
-  do {
-    if (initialCoordinate == goal) {
-     console.log(initialCoordinate);
-     reachGoal = true;
-    }else if (oneMoveFromGoal.includes(initialCoordinate)) {
-      console.log(initialCoordinate);
-      initialCoordinate = goal;
-    }else if (twoMovesFromGoal.map(moves=> moves.includes(initialCoordinate) )) {
-      
+class MoveNode {
+    constructor(coordinates, path) {
+        this.coords = coordinates; // [x, y]
+        this.path = path;         // Array of previous [x, y] coordinates
     }
-  } while (!reachGoal);
-  
 }
 
-class Knight {
-  constructor(xcoordinate, ycoordinate,goalx, goaly) {
-    this.x = xcoordinate;
-    this.y = ycoordinate;
-    this.goal = [goalx, goaly];
-    this.moves = getMoves(this.x, this.y);
-    this.move = move;
-  }
-   move(goal) {
-    
-  }
 
+function getValidMoves([x, y]) {
+    const moveOffsets = [
+        [2, 1], [2, -1], [-2, 1], [-2, -1],
+        [1, 2], [1, -2], [-1, 2], [-1, -2]
+    ];
+
+    const validMoves = [];
+    for (const [dx, dy] of moveOffsets) {
+        const newX = x + dx;
+        const newY = y + dy;
+
+        // Check if the new coordinates are within the 8x8 board
+        if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+            validMoves.push([newX, newY]);
+        }
+    }
+    return validMoves;
 }
 
-// Get array of possible eight moves a horse can do, if there is no such move in the  board, then the number of elements < 8
-function getMoves(coordinate) {
-let [xpos,ypos] = coordinate.split("")
-xpos = parseInt(xpos)
-ypos = parseInt(ypos)
+function knightMoves(startPos, endPos) {
+    // Helper to convert algebraic notation like 'a1' to [0, 0] coordinates
+    const toCoords = (pos) => {
+        const x = pos.charCodeAt(0) - 'a'.charCodeAt(0);
+        const y = parseInt(pos.substring(1)) - 1;
+        if (isNaN(x) || isNaN(y) || x < 0 || x >= 8 || y < 0 || y >= 8) {
+            return null;
+        }
+        return [x, y];
+    };
 
-  let moves =[];
-  if (xpos - 2 >= 0 && ypos - 1 >= 0) {
-    moves.push(`${xpos-2}${ypos-1}`)
-  }
-  if (xpos - 1 >= 0 && ypos - 2 >= 0) {
-    moves.push(`${xpos-1}${ypos-2}`)
-  }
-    if (xpos + 2 >= 0 && ypos - 1 >= 0) {
-    moves.push(`${xpos+2}${ypos-1}`)
-  }
-  if (xpos + 1 >= 0 && ypos - 2 >= 0) {
-    moves.push(`${xpos+1}${ypos-2}`)
-  }
+    // Helper to convert coordinates like [0, 0] back to 'a1'
+    const toNotation = (coords) => {
+        const xChar = String.fromCharCode('a'.charCodeAt(0) + coords[0]);
+        const yChar = coords[1] + 1;
+        return `${xChar}${yChar}`;
+    };
 
-    if (xpos + 2 >= 0 && ypos + 1 >= 0) {
-    moves.push(`${xpos+2}${ypos+1}`)
-  }
-  if (xpos + 1 >= 0 && ypos + 2 >= 0) {
-    moves.push(`${xpos+1}${ypos+2}`)
-  }
-    if (xpos - 2 >= 0 && ypos + 1 >= 0) {
-    moves.push(`${xpos-2}${ypos+1}`)
-  }
-  if (xpos - 1 >= 0 && ypos + 2 >= 0) {
-    moves.push(`${xpos-1}${ypos+2}`)
-  }
-  return moves;
+    const startCoords = toCoords(startPos);
+    const endCoords = toCoords(endPos);
+
+    if (!startCoords || !endCoords) {
+        console.log("Invalid start or end position. Please use algebraic notation (e.g., 'a1', 'h8').");
+        return;
+    }
+
+    // A queue for the Breadth-First Search 
+    const queue = [new MoveNode(startCoords, [startCoords])];
+
+    // A set to keep track of visited squares to avoid cycles.
+    const visited = new Set([startCoords.join(',')]);
+
+    // Perform the search
+    while (queue.length > 0) {
+        // Get the current position from the front of the queue
+        console.log(queue)
+        const currentNode = queue.shift();
+        const [currentX, currentY] = currentNode.coords;
+
+        if (currentX === endCoords[0] && currentY === endCoords[1]) {
+            const pathNotation = currentNode.path.map(toNotation);
+            console.log(`=> You made it in ${pathNotation.length - 1} moves! Here's your path:`);
+            console.log(pathNotation.join(' -> '));
+            return;
+        }
+
+        const moves = getValidMoves(currentNode.coords);
+        for (const move of moves) {
+            const moveKey = move.join(',');
+            if (!visited.has(moveKey)) {
+                visited.add(moveKey); // Mark this square as visited
+
+                // Create a new path by appending the new move
+                const newPath = [...currentNode.path, move];
+                
+                // Add the new position and its path to the back of the queue
+                queue.push(new MoveNode(move, newPath));
+            }
+        }
+    }
 }
-knightMoves('12','24')
+
